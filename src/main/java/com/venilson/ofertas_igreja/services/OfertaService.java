@@ -1,12 +1,13 @@
 package com.venilson.ofertas_igreja.services;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.venilson.ofertas_igreja.dto.OfertaRequestDTO;
+import com.venilson.ofertas_igreja.dto.OfertaResponseDTO;
 import com.venilson.ofertas_igreja.exceptions.DoacaoOfertaException;
 import com.venilson.ofertas_igreja.model.Igreja;
 import com.venilson.ofertas_igreja.model.Oferta;
@@ -25,36 +26,40 @@ public class OfertaService {
     }
 
     @Transactional
-    public Oferta fazerOferta(Oferta oferta){
-        validarOferta(oferta);
+    public OfertaResponseDTO fazerOferta(OfertaRequestDTO dto){
 
-        Igreja igreja = igrejaRepository.findById(oferta.getIgreja().getId())
+        Igreja igreja = igrejaRepository.findById(dto.igrejaID())
                                     .orElseThrow(() -> new DoacaoOfertaException("Igreja não encontrada"));
         
-        igreja.setSaldo(igreja.getSaldo().add(oferta.getValorOfertado()));
-        
-        igrejaRepository.save(igreja);
+        igreja.adicionarSaldo(dto.valorOfertado());
 
+        Oferta oferta = new Oferta();
+        oferta.setDoador(dto.doador());
+        oferta.setTelefoneDoador(dto.telefoneDoador());
+        oferta.setValorOfertado(dto.valorOfertado());
         oferta.setDataDoacao(LocalDateTime.now());
+        oferta.setIgreja(igreja);
 
-        return ofertaRepository.save(oferta);
+        Oferta ofertaSalva = ofertaRepository.save(oferta);
+
+        return mapToResponse(ofertaSalva);
     }
 
-    public List<Oferta> listarOfertas() {
-        return ofertaRepository.findAll();
+    public List<OfertaResponseDTO> listarOfertas() {
+        return ofertaRepository.findAll()
+                                .stream()
+                                .map(this::mapToResponse)
+                                .toList();
     }
 
-
-    public void validarOferta(Oferta oferta){
-        if (oferta.getDoador() == null 
-            || oferta.getValorOfertado() == null
-            || oferta.getValorOfertado().compareTo(BigDecimal.ZERO) <= 0
-            || oferta.getTelefoneDoador() == null
-            || oferta.getTelefoneDoador().isBlank()) {
-
-                throw new DoacaoOfertaException("Dados da oferta inválidos");
-            }
-
+    private OfertaResponseDTO mapToResponse(Oferta oferta) {
+        return new OfertaResponseDTO(
+            oferta.getId(),
+            oferta.getDoador(),
+            oferta.getValorOfertado(),
+            oferta.getDataDoacao(),
+            oferta.getIgreja().getNome()
+        );
     }
     
 }

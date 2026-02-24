@@ -7,6 +7,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -25,6 +26,24 @@ public class Igreja {
 
     @Column(name = "saldo_igreja")
     private BigDecimal saldo = BigDecimal.ZERO;
+
+    public void adicionarSaldo(BigDecimal valor) {
+        if (valor == null || valor.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Valor inválido para adicionar ao saldo");
+        }
+        if (this.saldo == null) {
+            this.saldo = BigDecimal.ZERO;
+        }
+
+        this.saldo = this.saldo.add(valor);
+    }
+
+    @PrePersist
+    public void prePersist() {
+        if (this.saldo == null) {
+            this.saldo = BigDecimal.ZERO;
+        }
+    }
 
 
     @Override
